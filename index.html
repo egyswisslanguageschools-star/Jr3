@@ -353,10 +353,12 @@
             for (var i = 0; i < rankedStudents.length; i++) {
                 if (i === 0) {
                     rankedStudents[i].rank = 1;
+                } else if (rankedStudents[i].total === 0) {
+                    rankedStudents[i].rank = 999;
                 } else if (rankedStudents[i].total === rankedStudents[i-1].total) {
                     rankedStudents[i].rank = rankedStudents[i-1].rank;
                 } else {
-                    rankedStudents[i].rank = i + 1;
+                    rankedStudents[i].rank = rankedStudents[i-1].rank + 1;
                 }
             }
             renderLeaderboard();
@@ -376,8 +378,21 @@
         function renderLeaderboard() {
             var tbody = document.getElementById('leaderboard-body');
             tbody.innerHTML = '';
-            var top10 = rankedStudents.filter(function(s){ return s.rank <= 10; });
-            top10.forEach(function(s) {
+            // Get students with total > 0, collect until we have 10 distinct ranks
+            var validStudents = rankedStudents.filter(function(s){ return s.total > 0; });
+            var displayed = [];
+            var lastRank = 0;
+            var rankCount = 0;
+            for (var i = 0; i < validStudents.length; i++) {
+                var s = validStudents[i];
+                if (s.rank !== lastRank) {
+                    if (rankCount >= 10) break;
+                    rankCount++;
+                    lastRank = s.rank;
+                }
+                displayed.push(s);
+            }
+            displayed.forEach(function(s) {
                 var pct = ((s.total / 300) * 100).toFixed(1);
                 var badge = '<span class="text-slate-600 font-bold">#' + s.rank + '</span>';
                 if      (s.rank === 1) badge = '<span class="text-2xl">🥇</span>';
@@ -461,7 +476,17 @@
                 buildRow('Discover',    s.discover,   40);
 
             var cert = document.getElementById('certificate-section');
-            if (s.rank <= 10 && passed) {
+            // Find the 10th rank value dynamically
+            var validStudents2 = rankedStudents.filter(function(x){ return x.total > 0; });
+            var rankCount2 = 0, lastRank2 = 0, maxRank = 0;
+            for (var j = 0; j < validStudents2.length; j++) {
+                if (validStudents2[j].rank !== lastRank2) {
+                    rankCount2++;
+                    lastRank2 = validStudents2[j].rank;
+                    if (rankCount2 === 10) { maxRank = lastRank2; break; }
+                }
+            }
+            if (s.rank <= maxRank && passed) {
                 cert.classList.remove('hidden');
                 document.getElementById('cert-name').textContent       = s.name;
                 document.getElementById('cert-rank').textContent       = s.rank;
